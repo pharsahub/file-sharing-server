@@ -1,0 +1,60 @@
+// prettier-ignore
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  username      String   @unique
+  email         String   @unique
+  password_hash String
+  role          String   @default("user") // admin or user
+  createdAt     DateTime @default(now())
+  
+  files         File[]
+  folders       Folder[]
+}
+
+model File {
+  id            String   @id @default(uuid())
+  filename      String
+  original_name String
+  file_size     Int
+  mime_type     String
+  ownerId       String
+  upload_date   DateTime @default(now())
+  path          String
+  
+  owner         User     @relation(fields: [ownerId], references: [id])
+  shares        Share[]
+  folderId      String?
+  folder        Folder?  @relation(fields: [folderId], references: [id])
+}
+
+model Folder {
+  id            String   @id @default(uuid())
+  name          String
+  parent_folder String?
+  ownerId       String
+  
+  owner         User     @relation(fields: [ownerId], references: [id])
+  files         File[]
+  // Simple parent-child tree could be implemented via self-relation, but string parent_folder is sufficient for basic
+}
+
+model Share {
+  id             String    @id @default(uuid())
+  fileId         String
+  share_token    String    @unique
+  expires_at     DateTime?
+  password       String?
+  download_count Int       @default(0)
+  
+  file           File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+}
